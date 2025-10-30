@@ -29,6 +29,78 @@ document.addEventListener("DOMContentLoaded", () => {
 
         activitiesList.appendChild(activityCard);
 
+        // Participants section (render as a safe bulleted list)
+        const participantsDiv = document.createElement("div");
+        participantsDiv.className = "participants-section";
+
+        const participantsTitle = document.createElement("p");
+        participantsTitle.innerHTML = "<strong>Participants:</strong>";
+        participantsDiv.appendChild(participantsTitle);
+
+        const ul = document.createElement("ul");
+        ul.className = "participants-list";
+
+
+        if (!details.participants || details.participants.length === 0) {
+          const li = document.createElement("li");
+          li.className = "participant-item none";
+          li.textContent = "No participants yet";
+          ul.appendChild(li);
+        } else {
+          details.participants.forEach((p) => {
+            const li = document.createElement("li");
+            li.className = "participant-item";
+
+            // Participant name
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "participant-name";
+            nameSpan.textContent = p;
+            li.appendChild(nameSpan);
+
+            // Delete icon
+            const deleteBtn = document.createElement("button");
+
+            deleteBtn.className = "delete-participant-btn";
+            deleteBtn.title = `Remove ${p}`;
+            // Inline SVG trash icon for modern look
+            deleteBtn.innerHTML = `
+              <svg class="trash-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                <rect x="6" y="8" width="1.5" height="6" rx="0.75" fill="#c62828"/>
+                <rect x="9.25" y="8" width="1.5" height="6" rx="0.75" fill="#c62828"/>
+                <rect x="12.5" y="8" width="1.5" height="6" rx="0.75" fill="#c62828"/>
+                <path d="M4 6.5H16" stroke="#c62828" stroke-width="1.5" stroke-linecap="round"/>
+                <rect x="7" y="3" width="6" height="2" rx="1" fill="#c62828"/>
+                <rect x="5" y="6.5" width="10" height="10" rx="2" stroke="#c62828" stroke-width="1.2" fill="none"/>
+              </svg>
+            `;
+            deleteBtn.setAttribute("aria-label", `Remove ${p}`);
+            deleteBtn.tabIndex = 0;
+            deleteBtn.addEventListener("click", async (e) => {
+              e.stopPropagation();
+              // Call API to unregister participant
+              try {
+                const response = await fetch(`/activities/${encodeURIComponent(name)}/unregister?email=${encodeURIComponent(p)}`, {
+                  method: "POST",
+                });
+                if (response.ok) {
+                  fetchActivities(); // Refresh list
+                } else {
+                  const result = await response.json();
+                  alert(result.detail || "Failed to remove participant.");
+                }
+              } catch (error) {
+                alert("Failed to remove participant. Please try again.");
+              }
+            });
+            li.appendChild(deleteBtn);
+
+            ul.appendChild(li);
+          });
+        }
+
+        participantsDiv.appendChild(ul);
+        activityCard.appendChild(participantsDiv);
+
         // Add option to select dropdown
         const option = document.createElement("option");
         option.value = name;
@@ -62,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh activities list after successful signup
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
